@@ -1,0 +1,74 @@
+import os
+import pyttsx3
+import speech_recognition as sr
+import requests
+from datetime import datetime
+# Initialize the text-to-speech engine
+engine = pyttsx3.init()
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+def listen():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+        try:
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            return command.lower()
+        except sr.UnknownValueError:
+            speak("Sorry, I did not understand that.")
+            return None
+        except sr.RequestError:
+            speak("Sorry, there was an error with the speech recognition service.")
+            return None
+
+def tell_time():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    speak(f"The current time is {current_time}")
+
+def open_application(app_name):
+    try:
+        os.startfile(app_name)
+        speak(f"Opening {app_name}")
+    except Exception as e:
+        speak(f"Could not open {app_name}. Please check if it's installed.")
+
+def get_weather(location):
+    api_key = "YOUR_WEATHER_API_KEY"  # Replace with your own API key
+    base_url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={location}"
+    response = requests.get(base_url)
+    if response.status_code == 200:
+        weather_data = response.json()
+        temp = weather_data['current']['temp_c']
+        condition = weather_data['current']['condition']['text']
+        speak(f"The current temperature in {location} is {temp} degrees Celsius with {condition}.")
+    else:
+        speak("Could not retrieve weather information.")
+
+def main():
+    speak("Hello! I am ben your desktop partner. How can I assist you today?")
+    
+    while True:
+        command = listen()
+        if command is None:
+            continue
+        
+        if "time" in command:
+            tell_time()
+        elif "open" in command:
+            app_name = command.split("open")[-1].strip()
+            open_application(app_name)
+        elif "weather" in command:
+            location = command.split("weather in")[-1].strip()
+            get_weather(location)
+        elif "exit" in command:
+            speak("Goodbye! Have a great day")
+            break
+        else:
+            speak("I can help with telling the time, opening applications, and providing weather updates.")
+
+if __name__ == "__main__":
+    main()
